@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#E9E9E9;-webkit-font-smoothing:antialiased;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+  .leaflet-container{font-family:'IBM Plex Mono',monospace;background:#DEDEDE;}
+  .leaflet-bar a{background:#F4F4F4;color:#173D34;border-color:#173D34;}
+  .leaflet-bar a:hover{background:#E9E9E9;}
+  .dc-dark-soft{filter:brightness(1.35) contrast(0.92);}
+</style>
+</helmet>
+<div style="min-height: 100vh; padding: clamp(16px,3.5vw,40px); font-family: 'IBM Plex Sans',sans-serif; color: #173D34; background-color: #e4e2e0">
+  <div style="max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:22px;">
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(216px,1fr));gap:16px;">
+      <div style="background:#173D34;border-radius:26px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:178px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#FFFFFF;">Velofahrte vom {{ refWeekday }}</div>
+        <div>
+          <div style="font-family:'Outfit',sans-serif;font-weight:600;font-size:clamp(44px,5vw,58px);line-height:.9;color:#F4F4F4;">{{ cityTotal }}</div>
+          <div style="font-size:12.5px;color:#FFFFFF;margin-top:8px;">stadtwiit · alli Zählstelle</div>
+        </div>
+      </div>
+      <div style="border-radius: 26px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; min-height: 178px; box-shadow: 0 4px 20px rgba(23,61,52,.08); background-color: #6e3cf2">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#FFFFFF;">Meistbefahreni</div>
+        <div>
+          <div style="font-family: 'Outfit',sans-serif; font-weight: 600; font-size: clamp(18px,2.4vw,32px); line-height: 1.05; color: #ffffff; overflow-wrap: break-word; word-break: break-word; hyphens: auto;">{{ topName }}</div>
+          <div style="font-size:12.5px;color:#FFFFFF;margin-top:8px;">{{ topTotal }} Fahrte vom {{ refWeekday }}</div>
+        </div>
+      </div>
+      <div style="border-radius: 26px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; min-height: 178px; background-color: #000000">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#FFFFFF;">Aktivi Zähler</div>
+        <div>
+          <div style="font-family:'Outfit',sans-serif;font-weight:600;font-size:clamp(44px,5vw,58px);line-height:.9;color:#F4F4F4;">{{ activeCount }}</div>
+          <div style="font-size:12.5px;color:#FFFFFF;margin-top:8px;">Induktionsschlaufe im Belag</div>
+        </div>
+      </div>
+      <div style="background:#F47B43;border-radius:26px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:178px;">
+        <div style="font-family: 'IBM Plex Mono',monospace; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #ffffff">Veränderig</div>
+        <div>
+          <div style="font-family: 'Outfit',sans-serif; font-weight: 600; font-size: clamp(44px,5vw,58px); line-height: .9; color: #ffffff">{{ deltaPct }}</div>
+          <div style="font-size: 12.5px; color: #ffffff; margin-top: 8px">vs. gliiche Tag letschti Wuche</div>
+        </div>
+      </div>
+    </div>
+
+    <section style="border-radius: 28px; padding: 22px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 4px 22px rgba(23,61,52,.08); background-color: #ffffff">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; border-bottom: 1.5px solid #173D34; padding-bottom: 16px; border-color: #ffffff">
+        <div>
+          <h2 style="margin:0;font-family:'Outfit',sans-serif;font-size:clamp(19px,2.3vw,29px);font-weight:600;letter-spacing:-.005em;text-transform:uppercase;line-height:1;color:#173D34;white-space:nowrap;">VELOZÄHLER I DÄ STADT</h2>
+          <div style="margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;color:#8C8C8C;">{{ dateLabel }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="display:inline-flex;align-items:center;gap:4px;background:#000000;border-radius:999px;padding:4px;">
+            <sc-for list="{{ basemapChips }}" as="b" hint-placeholder-count="2">
+              <button style="{{ b.style }}" onClick="{{ b.onClick }}">{{ b.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div ref="{{ setMapRef }}" style="height:clamp(360px,46vh,520px);border-radius:20px;overflow:hidden;background:#DEDEDE;"></div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#8C8C8C;">
+        <span>Rang vom {{ refWeekday }}</span>
+        <span style="display:flex;align-items:center;gap:7px;color:#173D34;"><span style="width:12px;height:12px;border-radius:50%;background:#6E3BF2;flex:none;"></span>Top 3</span>
+        <span style="display:flex;align-items:center;gap:7px;color:#173D34;"><span style="width:12px;height:12px;border-radius:50%;background:#F47B43;flex:none;"></span>4–6</span>
+        <span style="display:flex;align-items:center;gap:7px;color:#173D34;"><span style="width:12px;height:12px;border-radius:50%;background:#173D34;flex:none;"></span>7–9</span>
+        <span style="display:flex;align-items:center;gap:7px;color:#173D34;"><span style="width:12px;height:12px;border-radius:50%;background:#000000;flex:none;"></span>{{ rankLastLabel }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8C8C8C;margin-bottom:8px;">Rangliste vom {{ refWeekday }}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px 18px;">
+        <sc-for list="{{ stationRanking }}" as="r" hint-placeholder-count="3">
+          <div style="{{ r.rowStyle }}" onClick="{{ r.onClick }}" onmouseenter="{{ r.onMouseEnter }}" onmouseleave="{{ r.onMouseLeave }}">
+            <span style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:600;color:{{ r.fg }};width:24px;flex:none;text-align:center;">{{ r.rank }}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;">
+                <span title="{{ r.name }}" style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ r.fg }};">{{ r.name }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:{{ r.fg }};">{{ r.total }}</span>
+              </div>
+              <div style="height:6px;border-radius:3px;background:{{ r.barTrack }};margin-top:6px;overflow:hidden;">
+                <div style="height:100%;width:{{ r.barW }};background:{{ r.fg }};border-radius:3px;"></div>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+        </div>
+        <sc-if value="{{ showRankToggle }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ toggleRank }}" style="margin-top:10px;align-self:flex-start;background:none;border:none;color:#173D34;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;text-decoration:underline;text-underline-offset:3px;padding:4px 2px;">{{ rankToggleLabel }}</button>
+        </sc-if>
+      </div>
+    </section>
+
+    <footer style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;border-top:1.5px solid #173D34;padding-top:14px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:#8C8C8C;line-height:1.6;max-width:560px;">Datequelle: Tiefbauamt Stadt Zürich – Automatischi Velozählig (CC0)<br>Kontakt: Nadia Westermann · nadia.west@hispeed.ch<br>Privats, nid-kommerziells Projekt.</div>
+      <a href="https://data.stadt-zuerich.ch" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#173D34;text-decoration:underline;text-underline-offset:4px;letter-spacing:.03em;">data.stadt-zuerich.ch →</a>
+    </footer>
+
+    <sc-if value="{{ overlayOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeOverlay }}" style="position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;padding:clamp(16px,5vh,56px) 16px;z-index:1000;overflow-y:auto;">
+    <section onClick="{{ stopProp }}" style="position:relative;width:100%;max-width:700px;background:#F4F4F4;border-radius:28px;box-shadow:0 30px 70px rgba(23,61,52,.35);padding:24px;display:flex;flex-direction:column;gap:16px;">
+      <button onClick="{{ closeOverlay }}" aria-label="Schliesse" style="position:absolute;top:18px;right:18px;width:36px;height:36px;border-radius:999px;border:1.5px solid #173D34;background:transparent;color:#173D34;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-end;padding-right:44px;">
+        <div style="display:flex;align-items:stretch;gap:14px;">
+
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8C8C8C;">Usgwählti Zählstelle</div>
+            <h2 style="margin:4px 0 0;font-family:'Outfit',sans-serif;font-size:clamp(28px,4vw,40px);font-weight:600;letter-spacing:-.01em;line-height:.92;color:#173D34;">{{ stationName }}</h2>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+            <button style="{{ t.style }}" onClick="{{ t.onClick }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ isDaily }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <sc-for list="{{ compareSegs }}" as="c" hint-placeholder-count="3">
+            <button style="{{ c.style }}" onClick="{{ c.onClick }}">{{ c.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSeasonal }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8C8C8C;margin-right:2px;">Jahr überlagere</span>
+          <sc-for list="{{ yearChips }}" as="y" hint-placeholder-count="5">
+            <button style="{{ y.style }}" onClick="{{ y.onClick }}">{{ y.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showChart }}" hint-placeholder-val="{{ true }}">
+        <div style="width:100%;background:#FAFAFA;border-radius:18px;padding:14px 10px 6px;">{{ chartEl }}</div>
+      </sc-if>
+
+      <sc-if value="{{ hasLegend }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:18px;flex-wrap:wrap;">
+          <sc-for list="{{ legendItems }}" as="l" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#173D34;font-weight:500;">
+              <span style="width:16px;height:3px;border-radius:2px;background:{{ l.color }};"></span>{{ l.label }}
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSeason }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8C8C8C;margin-right:2px;">Letschts vollständigs Jahr</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#173D34;">{{ seasonYear }}</span>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div style="flex:1 1 200px;background:#F2F2F2;border-radius:20px;padding:18px;">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:{{ seasonAccent }};">Summerhalbjahr · Apr–Sep</div>
+              <div style="font-family:'Outfit',sans-serif;font-size:40px;font-weight:600;margin-top:6px;line-height:.9;color:{{ seasonAccent }};">{{ summerVal }}</div>
+              <div style="font-size:12px;color:{{ seasonAccent }};margin-top:4px;">Ø Fahrte / Tag</div>
+              <div style="height:7px;border-radius:4px;background:{{ seasonAccentSoft }};margin-top:12px;overflow:hidden;"><div style="height:100%;width:{{ summerW }};background:{{ seasonAccent }};border-radius:4px;"></div></div>
+            </div>
+            <div style="flex:1 1 200px;background:#F2F2F2;border-radius:20px;padding:18px;">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:#3E6157;">Winterhalbjahr · Okt–Mär</div>
+              <div style="font-family:'Outfit',sans-serif;font-size:40px;font-weight:600;margin-top:6px;line-height:.9;color:#173D34;">{{ winterVal }}</div>
+              <div style="font-size:12px;color:#3E6157;margin-top:4px;">Ø Fahrte / Tag</div>
+              <div style="height:7px;border-radius:4px;background:#CBD6D0;margin-top:12px;overflow:hidden;"><div style="height:100%;width:{{ winterW }};background:#173D34;border-radius:4px;"></div></div>
+            </div>
+          </div>
+          <div style="background:#173D34;border-radius:20px;padding:20px 22px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+            <span style="font-family: 'Outfit',sans-serif; font-size: 44px; font-weight: 600; line-height: .85; color: #ffffff">{{ seasonRatio }}</span>
+            <span style="font-size:13.5px;color:#C7D6CF;flex:1;min-width:160px;">meh Veloverkehr im Summer- als im Winterhalbjahr · {{ stationName }}, {{ seasonYear }}</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#A0A0A0;border-top:1.5px solid #DEDEDE;padding-top:12px;line-height:1.6;">Datequelle: Tiefbauamt Stadt Zürich – Automatischi Velozählig (CC0) · Privats, nid-kommerziells Projekt.</div>
+    </section>
+    </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  CUR = 2026;
+  YEARS = [2023, 2024, 2025, 2026];
+  // Daten der Stadt Zürich sind pro Kalenderjahr in separate Datastore-Resourcen gesplittet.
+  // 2022 ist nur als CSV-Download verfügbar (nicht im SQL-Datastore) und daher ausgeklammert.
+  YEAR_RESOURCE = {
+    2023: '8bb6b21f-e412-4710-a50f-26202b2d1ca3',
+    2024: '1e1865cc-abc1-4dae-b761-030f7aaff787',
+    2025: '9e535ea2-7273-4474-94f7-ac64d2f16ae6',
+    2026: 'ab641c27-53c0-433d-bd02-e25394ba0918',
+  };
+  // Aktive Velozählstellen (Quelle: geo_standorte_der_automatischen_fuss__und_velozaehlungen,
+  // gefiltert auf status="aktuell" & velo=1). id = FK_STANDORT aus den Messdaten.
+  STATIONS = [
+    {id:'732',name:'Hardbrücke Nord (Seite Altstetten)',lat:47.383799,lng:8.515560},
+    {id:'1037',name:'Hardbrücke Süd (Seite HB)',lat:47.383630,lng:8.515816},
+    {id:'2989',name:'Langstrasse (Unterführung Nord)',lat:47.380615,lng:8.528191},
+    {id:'2993',name:'Scheuchzerstrasse',lat:47.382436,lng:8.545382},
+    {id:'2997',name:'Lux-Guyer-Weg',lat:47.384998,lng:8.536959},
+    {id:'3003',name:'Baslerstrasse',lat:47.386875,lng:8.495063},
+    {id:'3012',name:'Bucheggplatz',lat:47.398911,lng:8.533450},
+    {id:'4241',name:'Langstrasse (Fahrbahn Süd)',lat:47.380641,lng:8.528439},
+    {id:'4242',name:'Langstrasse (Fahrbahn Nord)',lat:47.381747,lng:8.528997},
+    {id:'4249',name:'Langstrasse (Unterführung Süd)',lat:47.380494,lng:8.528425},
+    {id:'4255',name:'Tödistrasse',lat:47.364571,lng:8.535845},
+    {id:'4258',name:'Hofwiesenstrasse',lat:47.400751,lng:8.533968},
+    {id:'4259',name:'Sihlpromenade',lat:47.369185,lng:8.529240},
+    {id:'4262',name:'Militärbrücke',lat:47.375014,lng:8.534073},
+    {id:'4266',name:'Bertastrasse',lat:47.374806,lng:8.515135},
+    {id:'4267',name:'Limmatquai → Central',lat:47.369140,lng:8.543568},
+    {id:'4269',name:'Tannenrauchstrasse',lat:47.347288,lng:8.526835},
+    {id:'4270',name:'Mühlebachstrasse',lat:47.364582,lng:8.550739},
+    {id:'4272',name:'Stadttunnel Süd (Barometer)',lat:47.376963,lng:8.535479},
+    {id:'4274',name:'Zeughausstrasse',lat:47.376244,lng:8.529637},
+    {id:'4275',name:'Flössergasse',lat:47.369311,lng:8.532329},
+    {id:'5002',name:'Mythenquai',lat:47.358655,lng:8.535617},
+  ];
+  D = this.emptyData();
+  state = {
+    selectedStationId: this.D.topStationId,
+    hoveredStationId: null,
+    chartMode: 'daily',
+    dailyCompare: 'none',
+    years: { 2023: false, 2024: false, 2025: false, 2026: true },
+    overlayOpen: false,
+    basemap: 'gray',
+    rankExpanded: false,
+    loading: true,
+    loadError: false,
+  };
+
+  BASEMAPS = {
+    gray:      { label:'Häll',     url:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', attr:'Esri, HERE, Garmin' },
+    dark:      { label:'Dunkel',   url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attr:'© OpenStreetMap, © CARTO', sub:'abcd', className:'dc-dark-soft' },
+  };
+
+  // ---------------- data: data.stadt-zuerich.ch, Viertelstundenwerte Velo ----------------
+  API = 'https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql';
+
+  emptyData(){
+    const stations=this.STATIONS.map(s=>({
+      ...s,
+      todayTotal:0, lastWeekTotal:0,
+      todayValues:new Array(96).fill(0),
+      lastWeekValues:new Array(96).fill(0),
+      weekdayProfile:new Array(96).fill(0),
+      weekendProfile:new Array(96).fill(0),
+      seasonalByYear:Object.fromEntries(this.YEARS.map(y=>[y,new Array(12).fill(0)])),
+    }));
+    const byId={}; stations.forEach(s=>byId[s.id]=s);
+    return { stations, byId, cityToday:0, cityLast:0, topStationId:stations[0].id, topStation:stations[0], maxToday:1 };
+  }
+
+  stationIdList(){ return this.STATIONS.map(s=>"'"+s.id+"'").join(','); }
+
+  sqlQuery(sql){
+    return fetch(this.API+'?sql='+encodeURIComponent(sql)).then(res=>res.json()).then(json=>{
+      if(!json.success) throw new Error((json.error&&json.error.message)||'datastore_search_sql fehlgeschlagen');
+      return json.result.records;
+    });
+  }
+
+  fmtDate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  addDays(d,n){ const r=new Date(d.getTime()); r.setDate(r.getDate()+n); return r; }
+
+  splitByYear(from,to){
+    const chunks=[]; let cursor=new Date(from.getTime());
+    while(cursor<=to){
+      const year=cursor.getFullYear();
+      const yearEnd=new Date(year,11,31);
+      const chunkEnd=yearEnd<to?yearEnd:new Date(to.getTime());
+      chunks.push({year,from:new Date(cursor.getTime()),to:chunkEnd});
+      cursor=this.addDays(chunkEnd,1);
+    }
+    return chunks;
+  }
+
+  // Holt rohe 15-Min-Zeilen für [from,to] (inklusiv), über Jahresgrenzen hinweg pro
+  // betroffenem Jahres-Resource einzeln abgefragt und wieder zusammengeführt.
+  fetchRows(from,to){
+    const chunks=this.splitByYear(from,to);
+    return Promise.all(chunks.map(c=>{
+      const rid=this.YEAR_RESOURCE[c.year];
+      if(!rid) return Promise.resolve([]);
+      const toExclusive=this.fmtDate(this.addDays(c.to,1));
+      const sql='SELECT "FK_STANDORT","DATUM","VELO_IN","VELO_OUT" FROM "'+rid+'" WHERE "FK_STANDORT" IN ('+this.stationIdList()+') AND "DATUM">=\''+this.fmtDate(c.from)+'T00:00\' AND "DATUM"<\''+toExclusive+'T00:00\'';
+      return this.sqlQuery(sql);
+    })).then(arrs=>arrs.flat());
+  }
+
+  // Die Messdaten haben ein paar Tage Verzug - ermittelt den jüngsten Tag, für den die
+  // Stationen bereits eine vollständige Zeilenzahl geliefert haben (statt Kalender-"heute").
+  findReferenceDate(){
+    const rid=this.YEAR_RESOURCE[this.CUR];
+    const sql='SELECT LEFT("DATUM",10) as d, COUNT(*) as n, MAX("DATUM") as mx FROM "'+rid+'" WHERE "FK_STANDORT" IN ('+this.stationIdList()+') GROUP BY d ORDER BY d DESC LIMIT 6';
+    return this.sqlQuery(sql).then(rows=>{
+      if(!rows.length) return null;
+      const maxN=Math.max(...rows.map(r=>Number(r.n)));
+      const full=rows.find(r=>Number(r.n)>=maxN*0.9)||rows[0];
+      const [y,m,d]=full.d.split('-').map(Number);
+      const [hh,mm]=full.mx.slice(11,16).split(':').map(Number);
+      return new Date(y,m-1,d,hh,mm);
+    });
+  }
+
+  bucketDay(rows){
+    const out={}; this.STATIONS.forEach(s=>{ out[s.id]=new Array(96).fill(0); });
+    rows.forEach(r=>{
+      const t=r.DATUM.slice(11,16);
+      const slot=parseInt(t.slice(0,2),10)*4+Math.floor(parseInt(t.slice(3,5),10)/15);
+      const v=(parseInt(r.VELO_IN,10)||0)+(parseInt(r.VELO_OUT,10)||0);
+      if(out[r.FK_STANDORT]) out[r.FK_STANDORT][slot]+=v;
+    });
+    return out;
+  }
+
+  // Wochentag/Wochenende lässt sich auf dem Datastore-SQL-Endpoint nicht serverseitig
+  // bestimmen (EXTRACT/CAST sind dort gesperrt) - Mittelwert daher clientseitig über ein
+  // 14-Tage-Fenster (die Query-Zeilenbegrenzung von ~32'000 Zeilen erlaubt nicht mehr).
+  buildProfiles(rows){
+    const wdSum={},wdCnt={},weSum={},weCnt={};
+    this.STATIONS.forEach(s=>{ wdSum[s.id]=new Array(96).fill(0); wdCnt[s.id]=new Array(96).fill(0); weSum[s.id]=new Array(96).fill(0); weCnt[s.id]=new Array(96).fill(0); });
+    rows.forEach(r=>{
+      const [y,m,d]=r.DATUM.slice(0,10).split('-').map(Number);
+      const isWeekend=[0,6].includes(new Date(y,m-1,d).getDay());
+      const t=r.DATUM.slice(11,16);
+      const slot=parseInt(t.slice(0,2),10)*4+Math.floor(parseInt(t.slice(3,5),10)/15);
+      const v=(parseInt(r.VELO_IN,10)||0)+(parseInt(r.VELO_OUT,10)||0);
+      const sid=r.FK_STANDORT;
+      if(!wdSum[sid]) return;
+      if(isWeekend){ weSum[sid][slot]+=v; weCnt[sid][slot]++; } else { wdSum[sid][slot]+=v; wdCnt[sid][slot]++; }
+    });
+    const weekdayProfile={},weekendProfile={};
+    this.STATIONS.forEach(s=>{
+      weekdayProfile[s.id]=wdSum[s.id].map((v,i)=>wdCnt[s.id][i]?Math.round(v/wdCnt[s.id][i]):0);
+      weekendProfile[s.id]=weSum[s.id].map((v,i)=>weCnt[s.id][i]?Math.round(v/weCnt[s.id][i]):0);
+    });
+    return {weekdayProfile,weekendProfile};
+  }
+
+  // Monatsmittel (Fahrten/Tag) pro Station für ein Jahr - Aggregation läuft per SQL
+  // (LEFT/SUM/COUNT DISTINCT sind erlaubt), damit nicht ein ganzes Jahr roh geladen wird.
+  fetchSeasonalYear(year){
+    const rid=this.YEAR_RESOURCE[year];
+    // null statt 0 für Monate ohne Daten (z.B. noch nicht vergangene Monate des
+    // laufenden Jahres) - so kann die Grafik die Linie dort enden lassen statt auf 0 abzustürzen.
+    const out={}; this.STATIONS.forEach(s=>{ out[s.id]=new Array(12).fill(null); });
+    if(!rid) return Promise.resolve(out);
+    const sql='SELECT "FK_STANDORT", LEFT("DATUM",7) as ym, SUM("VELO_IN"::int) + SUM("VELO_OUT"::int) as total, COUNT(DISTINCT LEFT("DATUM",10)) as days FROM "'+rid+'" WHERE "FK_STANDORT" IN ('+this.stationIdList()+') GROUP BY "FK_STANDORT", ym';
+    return this.sqlQuery(sql).then(rows=>{
+      rows.forEach(r=>{
+        const month=parseInt(r.ym.slice(5,7),10)-1;
+        const days=Number(r.days)||0;
+        if(out[r.FK_STANDORT] && days>0) out[r.FK_STANDORT][month]=Math.round(Number(r.total)/days);
+      });
+      return out;
+    });
+  }
+
+  async loadData(){
+    try{
+      const refDate=await this.findReferenceDate();
+      if(!refDate) throw new Error('Kein Referenzdatum gefunden');
+      this.refDate=refDate;
+      const lastWeek=this.addDays(refDate,-7);
+      const profileFrom=this.addDays(refDate,-13);
+      const [todayRows,lastWeekRows,profileRows,...seasonalByYearList]=await Promise.all([
+        this.fetchRows(refDate,refDate),
+        this.fetchRows(lastWeek,lastWeek),
+        this.fetchRows(profileFrom,refDate),
+        ...this.YEARS.map(y=>this.fetchSeasonalYear(y)),
+      ]);
+      const todayValues=this.bucketDay(todayRows);
+      const lastWeekValues=this.bucketDay(lastWeekRows);
+      const {weekdayProfile,weekendProfile}=this.buildProfiles(profileRows);
+      // Manche Zählstellen liefern seit Wochen/Monaten keine Werte mehr (Sensor-Ausfall
+      // o.ä.), gelten aber weiterhin als "aktuell". Ohne jede Zeile am Referenztag würde
+      // das als 0 Fahrten erscheinen statt als fehlende Daten - solche Stationen daher
+      // ganz ausblenden statt mit einer irreführenden Null anzuzeigen.
+      const stationsWithData=new Set(todayRows.map(r=>r.FK_STANDORT));
+      const stations=this.STATIONS.filter(s=>stationsWithData.has(s.id)).map(s=>{
+        const seasonalByYear={};
+        this.YEARS.forEach((y,i)=>{ seasonalByYear[y]=seasonalByYearList[i][s.id]; });
+        const tv=todayValues[s.id], lv=lastWeekValues[s.id];
+        return {
+          ...s,
+          todayValues:tv, lastWeekValues:lv,
+          todayTotal:tv.reduce((a,v)=>a+v,0),
+          lastWeekTotal:lv.reduce((a,v)=>a+v,0),
+          weekdayProfile:weekdayProfile[s.id], weekendProfile:weekendProfile[s.id],
+          seasonalByYear,
+        };
+      });
+      if(!stations.length) throw new Error('Keine Station mit Daten am Referenztag');
+      const byId={}; stations.forEach(s=>byId[s.id]=s);
+      const cityToday=stations.reduce((a,s)=>a+s.todayTotal,0);
+      const cityLast=stations.reduce((a,s)=>a+s.lastWeekTotal,0);
+      let top=stations[0]; stations.forEach(s=>{ if(s.todayTotal>top.todayTotal) top=s; });
+      const maxToday=Math.max(...stations.map(s=>s.todayTotal))||1;
+      this.D={ stations, byId, cityToday, cityLast, topStationId:top.id, topStation:top, maxToday };
+      this._rankColors=null;
+      this.refreshMarkers();
+      this.setState({selectedStationId:top.id, loading:false, loadError:false});
+    }catch(e){
+      console.error('[Veloverkehr] Laden der Verkehrszählungsdaten fehlgeschlagen:', e);
+      this.setState({loading:false, loadError:true});
+    }
+  }
+
+  fmt(n){ n=Math.round(n); const neg=n<0; n=Math.abs(n); let s=String(n),out=''; while(s.length>3){ out="'"+s.slice(-3)+out; s=s.slice(0,-3); } return (neg?'-':'')+s+out; }
+  // "Heute" gibt es bei diesen Daten nicht - der Datensatz hat ~2 Tage Verzug, "todayValues"
+  // etc. bezeichnen den jüngsten Tag mit vollständigen Daten (z.B. Fritig statt heute).
+  WEEKDAYS_CH=['Suntig','Mäntig','Zistig','Mitwuch','Dunstig','Fritig','Samstig'];
+  refWeekdayLabel(){ return this.refDate?this.WEEKDAYS_CH[this.refDate.getDay()]:'–'; }
+  yearColor(y){ const c=this.CUR; const m={[c]:'#6E3BF2',[c-1]:'#F47B43',[c-2]:'#173D34',[c-3]:'#000000',[c-4]:'#8C8C8C'}; return m[y]||'#8C8C8C'; }
+  hexA(hex,a){ const h=hex.replace('#',''); const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
+  // Rang-Farben: Top 3 violett · 4–6 orange · 7–9 grün · 10–12 schwarz
+  rankColorFor(i){ return i<3?'#6E3BF2':i<6?'#F47B43':i<9?'#173D34':'#000000'; }
+  textColor(bg){ return '#FFFFFF'; }
+  rankColorMap(){ if(this._rankColors) return this._rankColors; const sorted=[...this.D.stations].sort((a,b)=>b.todayTotal-a.todayTotal); const m={}; sorted.forEach((s,i)=>{ m[s.id]=this.rankColorFor(i); }); this._rankColors=m; return m; }
+
+  // ---------------- styles (editorial palette) ----------------
+  // INK #173D34 · ORANGE #F47B43 · PURPLE #6E3BF2 · CREAM #F4F4F4 · BG #E9E9E9
+  segStyle(a,color){ const c=color||'#173D34'; const onColor='#FFFFFF'; return { padding:'8px 16px',fontSize:'12.5px',fontWeight:600,borderRadius:'999px',cursor:'pointer',border:'1.5px solid '+c,background:a?c:'transparent',color:a?onColor:c,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:'.02em',whiteSpace:'nowrap',transition:'all .12s' }; }
+  chipStyle(a,color){ const c=color||'#173D34'; const txt=a?'#FFFFFF':c; return { padding:'7px 15px',fontSize:'11.5px',fontWeight:600,borderRadius:'999px',cursor:'pointer',border:'1.5px solid '+c,background:a?c:'transparent',color:txt,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:'.03em',whiteSpace:'nowrap',transition:'all .12s' }; }
+  rowStyle(a){ return { display:'flex',alignItems:'center',gap:'12px',padding:'9px 10px',borderRadius:'14px',cursor:'pointer',background:a?'#E9E9E9':'transparent',transition:'background .12s' }; }
+
+  // ---------------- charts ----------------
+  niceCeil(x){ if(x<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(x))); const f=[1,1.5,2,2.5,5,7.5,10]; for(const k of f){ if(k*p>=x) return k*p; } return 10*p; }
+
+  chart(o){
+    const h=React.createElement;
+    const W=820,H=336,m={l:54,r:16,t:16,b:30};
+    const iw=W-m.l-m.r, ih=H-m.t-m.b, n=o.xCount;
+    const niceMax=this.niceCeil(o.yMax||1);
+    const xAt=i=> m.l+(n<=1?0:i/(n-1))*iw;
+    const yAt=v=> m.t+ih-(v/niceMax)*ih;
+    const kids=[];
+    for(let t=0;t<=4;t++){ const tv=niceMax*t/4, y=yAt(tv);
+      kids.push(h('line',{key:'g'+t,x1:m.l,x2:W-m.r,y1:y,y2:y,stroke:'#DEDEDE',strokeWidth:1}));
+      kids.push(h('text',{key:'yl'+t,x:m.l-9,y:y+4,textAnchor:'end',fontSize:12,fill:'#8C8C8C',fontFamily:"'IBM Plex Mono',monospace"},o.yFmt(tv)));
+    }
+    o.xLabels.forEach((xl,k)=> kids.push(h('text',{key:'xl'+k,x:xAt(xl.i),y:H-9,textAnchor:'middle',fontSize:11.5,fill:'#8C8C8C',fontFamily:"'IBM Plex Mono',monospace"},xl.label)));
+    o.series.forEach((s,si)=>{
+      if(!s.values.length) return;
+      const pts=s.values.map((v,i)=>(i?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)).join(' ');
+      // Flächenfüllung am Ende der tatsächlichen Werte schliessen (s.values.length-1),
+      // nicht am Diagrammrand (n-1) - sonst zieht die Füllung bis zum letzten Monat
+      // durch, auch wenn die Linie selbst vorher (z.B. mangels Daten) aufhört.
+      if(s.fill){ const lastX=xAt(s.values.length-1).toFixed(1); const area=pts+' L '+lastX+' '+yAt(0).toFixed(1)+' L '+xAt(0).toFixed(1)+' '+yAt(0).toFixed(1)+' Z'; kids.push(h('path',{key:'a'+si,d:area,fill:s.color,fillOpacity:0.13})); }
+      kids.push(h('path',{key:'p'+si,d:pts,fill:'none',stroke:s.color,strokeWidth:s.dash?2:2.6,strokeDasharray:s.dash?'5 5':null,strokeLinejoin:'round',strokeLinecap:'round'}));
+    });
+    return h('svg',{viewBox:'0 0 '+W+' '+H,width:'100%',preserveAspectRatio:'xMidYMid meet',style:{display:'block',height:'auto',maxHeight:'340px'}},kids);
+  }
+
+  dailyChart(st,compare,accent){
+    const A=accent||'#173D34';
+    const second=(A==='#F47B43')?'#6E3BF2':'#F47B43';
+    let series,legend;
+    if(compare==='none'){ series=[{values:st.todayValues,color:A,fill:true}]; legend=[]; }
+    else if(compare==='lastweek'){ series=[{values:st.lastWeekValues,color:'#B5B5B5',dash:true},{values:st.todayValues,color:A,fill:true}]; legend=[{label:'Letschti Wuche',color:'#B5B5B5'},{label:this.refWeekdayLabel(),color:A}]; }
+    else { series=[{values:st.weekdayProfile,color:A},{values:st.weekendProfile,color:second}]; legend=[{label:'Wuchetag (Ø)',color:A},{label:'Wuchenend (Ø)',color:second}]; }
+    const yMax=Math.max(...series.reduce((a,s)=>a.concat(s.values),[]));
+    const xLabels=[{i:0,label:'00'},{i:24,label:'06'},{i:48,label:'12'},{i:72,label:'18'},{i:95,label:'24'}];
+    return { el:this.chart({xCount:96,series,yMax,xLabels,yFmt:v=>this.fmt(v)}), legend };
+  }
+
+  seasonalChart(st,years){
+    let active=this.YEARS.filter(y=>years[y]); if(!active.length) active=[this.CUR];
+    const single=active.length===1;
+    // Monate ohne Daten sind null (siehe fetchSeasonalYear) - Linie endet dort, statt auf 0 zu fallen.
+    const series=active.map(y=>{
+      const raw=st.seasonalByYear[y];
+      const cut=raw.findIndex(v=>v==null);
+      return { values:cut===-1?raw:raw.slice(0,cut), color:this.yearColor(y), fill:single };
+    });
+    const legend=active.map(y=>({label:String(y),color:this.yearColor(y)}));
+    const yMax=Math.max(0,...series.reduce((a,s)=>a.concat(s.values),[]));
+    const M=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    const xLabels=M.map((mn,i)=>({i,label:mn}));
+    return { el:this.chart({xCount:12,series,yMax,xLabels,yFmt:v=>this.fmt(v)}), legend };
+  }
+
+  // ---------------- actions ----------------
+  selectStation(id){ this.setState({selectedStationId:id,overlayOpen:true}); }
+  closeOverlay(){ this.setState({overlayOpen:false}); }
+  makeLayer(key){ const b=this.BASEMAPS[key]||this.BASEMAPS.gray; const opts={maxZoom:19,detectRetina:false,attribution:b.attr}; if(b.sub) opts.subdomains=b.sub; if(b.className) opts.className=b.className; return window.L.tileLayer(b.url,opts); }
+  setBasemap(key){ this.setState({basemap:key}); }
+  toggleYear(y){ this.setState(s=>({years:{...s.years,[y]:!s.years[y]}})); }
+
+  // ---------------- map ----------------
+  componentDidMount(){ this.tryInitMap(); this.loadData(); this._onResize=()=>{ if(this.map) this.map.invalidateSize(); }; window.addEventListener('resize',this._onResize); this._onKey=(e)=>{ if(e.key==='Escape') this.setState({overlayOpen:false}); }; window.addEventListener('keydown',this._onKey); }
+  componentWillUnmount(){ if(this._t) clearTimeout(this._t); if(this._onResize) window.removeEventListener('resize',this._onResize); if(this._onKey) window.removeEventListener('keydown',this._onKey); if(this.map) this.map.remove(); }
+
+  markerStyle(s,r,sel){
+    const col=this.rankColorMap()[s.id]||'#6E3BF2';
+    // Schwarz verwäscht bei der üblichen Opazität auf der (jetzt aufgehellten) dunklen
+    // Karte zu Hellgrau - braucht daher mehr Deckkraft als die anderen Rangfarben.
+    const base=col==='#000000'?0.6:0.35, hi=col==='#000000'?0.85:0.55;
+    return { radius:sel?r+3:r,color:col,weight:2,fillColor:col,fillOpacity:sel?hi:base };
+  }
+  // Ausgewählte UND per Rangliste gehoverte Station gelten beide als "hervorgehoben".
+  isHighlighted(id){ return id===this.state.selectedStationId||id===this.state.hoveredStationId; }
+
+  tryInitMap(){
+    if(!this.mapEl || !window.L){ this._t=setTimeout(()=>this.tryInitMap(),120); return; }
+    const L=window.L;
+    this.map=L.map(this.mapEl,{zoomControl:true,scrollWheelZoom:false,attributionControl:true}).setView([47.380,8.539],13);
+    this.baseLayer=this.makeLayer(this.state.basemap).addTo(this.map);
+    this._lastBasemap=this.state.basemap;
+    this._lastSel=this.state.selectedStationId;
+    this._lastHover=this.state.hoveredStationId;
+    this.markers={};
+    // Marker werden hier (noch mit Platzhalter-Nullwerten aus emptyData()) sofort
+    // erzeugt und später per refreshMarkers() aktualisiert statt neu hinzugefügt -
+    // CircleMarker erst NACH einem späteren Re-Render per addTo() einzufügen, bringt
+    // Leaflets SVG-Renderer auf dieser Seite reproduzierbar zum Absturz.
+    const maxT=this.D.maxToday||1;
+    this.D.stations.forEach(s=>{
+      const r=6+18*Math.sqrt(s.todayTotal/maxT);
+      const mk=L.circleMarker([s.lat,s.lng],this.markerStyle(s,r,this.isHighlighted(s.id)));
+      mk._r=r;
+      mk.bindTooltip(s.name+' · '+this.fmt(s.todayTotal),{direction:'top',offset:[0,-4]});
+      mk.on('click',()=>this.selectStation(s.id));
+      mk.addTo(this.map);
+      this.markers[s.id]=mk;
+    });
+    setTimeout(()=>{ if(this.map) this.map.invalidateSize(); },250);
+  }
+
+  refreshMarkers(){
+    if(!this.markers || !this.map) return;
+    const maxT=this.D.maxToday||1;
+    const visible=new Set(this.D.stations.map(s=>s.id));
+    // Stationen ohne Daten am Referenztag werden aus this.D.stations ausgeblendet -
+    // ihre beim Mount erzeugten Platzhalter-Marker daher hier von der Karte entfernen.
+    Object.keys(this.markers).forEach(id=>{
+      if(!visible.has(id)){ this.map.removeLayer(this.markers[id]); delete this.markers[id]; }
+    });
+    this.D.stations.forEach(s=>{
+      const mk=this.markers[s.id];
+      if(!mk) return;
+      const r=6+18*Math.sqrt(s.todayTotal/maxT);
+      mk._r=r;
+      mk.setRadius(r);
+      mk.setStyle(this.markerStyle(s,r,this.isHighlighted(s.id)));
+      mk.setTooltipContent(s.name+' · '+this.fmt(s.todayTotal));
+    });
+  }
+
+  componentDidUpdate(){
+    if(this.markers && (this._lastSel!==this.state.selectedStationId || this._lastHover!==this.state.hoveredStationId)){
+      this._lastSel=this.state.selectedStationId;
+      this._lastHover=this.state.hoveredStationId;
+      this.D.stations.forEach(s=>{ const mk=this.markers[s.id]; if(mk) mk.setStyle(this.markerStyle(s,mk._r,this.isHighlighted(s.id))); });
+    }
+    if(this.map && this._lastBasemap!==this.state.basemap){
+      this._lastBasemap=this.state.basemap;
+      if(this.baseLayer) this.map.removeLayer(this.baseLayer);
+      this.baseLayer=this.makeLayer(this.state.basemap).addTo(this.map);
+    }
+  }
+
+  // ---------------- render ----------------
+  renderVals(){
+    const S=this.state, D=this.D, st=D.byId[S.selectedStationId]||D.stations[0];
+    const isDaily=S.chartMode==='daily', isSeasonal=S.chartMode==='seasonal', isSeason=S.chartMode==='season';
+    const showChart=isDaily||isSeasonal;
+    const delta=D.cityLast?(D.cityToday-D.cityLast)/D.cityLast:0, deltaUp=delta>=0;
+
+    const accent=this.rankColorMap()[st.id]||'#173D34';
+    const tabColors={daily:'#000000',seasonal:'#6E3BF2',season:'#173D34'};
+    const tab=(key,label)=>({ label,active:S.chartMode===key,style:this.segStyle(S.chartMode===key,tabColors[key]),onClick:()=>this.setState({chartMode:key}) });
+    const tabs=[ tab('daily','Tagesverlauf'), tab('seasonal','Saisonal'), tab('season','Summer · Winter') ];
+    const csegColors={none:'#6E3BF2',lastweek:'#8A8A8A','weekday-weekend':'#F47B43'};
+    const cseg=(key,label)=>({ label,active:S.dailyCompare===key,style:this.chipStyle(S.dailyCompare===key,csegColors[key]),onClick:()=>this.setState({dailyCompare:key}) });
+    const compareSegs=[ cseg('none',this.refWeekdayLabel()), cseg('lastweek','vs. letschti Wuche'), cseg('weekday-weekend','Wuchetag · Wuchenend') ];
+    const yearChips=this.YEARS.map(y=>({ label:String(y),active:!!S.years[y],style:this.chipStyle(!!S.years[y],this.yearColor(y)),onClick:()=>this.toggleYear(y) }));
+
+    const maxToday=Math.max(...D.stations.map(s=>s.todayTotal))||1;
+    const sortedStations=[...D.stations].sort((a,b)=>b.todayTotal-a.todayTotal);
+    const stationRanking=sortedStations.map((s,i)=>{
+      const bg=this.rankColorFor(i);
+      const fg=this.textColor(bg);
+      return {
+        rank:String(i+1),name:s.name,total:this.fmt(s.todayTotal),
+        barW:(100*s.todayTotal/maxToday)+'%',
+        fg,
+        barTrack: 'rgba(255,255,255,.28)',
+        rowStyle:{ display:'flex',alignItems:'center',gap:'12px',padding:'13px 14px',borderRadius:'16px',cursor:'pointer',background:bg,transition:'background .12s' },
+        onClick:()=>this.selectStation(s.id),
+        onMouseEnter:()=>this.setState({hoveredStationId:s.id}),
+        onMouseLeave:()=>this.setState({hoveredStationId:null}),
+      };
+    });
+    const rankHidden=0;
+    const rankToggleLabel='';
+    const toggleRank=()=>{};
+
+    const switchSeg=(a)=>({ padding:'7px 18px',fontSize:'11.5px',fontWeight:600,borderRadius:'999px',cursor:'pointer',border:'none',background:a?'#F4F4F4':'transparent',color:a?'#000000':'#9A9A9A',fontFamily:"'IBM Plex Mono',monospace",letterSpacing:'.03em',whiteSpace:'nowrap',transition:'all .14s' });
+    const basemapChips=Object.keys(this.BASEMAPS).map(k=>({ label:this.BASEMAPS[k].label,active:S.basemap===k,style:switchSeg(S.basemap===k),onClick:()=>this.setBasemap(k) }));
+
+    let chartEl=null, legendItems=[];
+    if(isDaily){ const r=this.dailyChart(st,S.dailyCompare,accent); chartEl=r.el; legendItems=r.legend; }
+    else if(isSeasonal){ const r=this.seasonalChart(st,S.years); chartEl=r.el; legendItems=r.legend; }
+
+    // Sommer/Winter-Vergleich nur fürs letzte vollständig abgeschlossene Jahr - das
+    // laufende Jahr (this.CUR) hat noch fehlende Monate und würde den Vergleich verzerren.
+    const yr=this.CUR-1;
+    const ser=st.seasonalByYear[yr];
+    const summer=(ser[3]+ser[4]+ser[5]+ser[6]+ser[7]+ser[8])/6;
+    const winter=(ser[9]+ser[10]+ser[11]+ser[0]+ser[1]+ser[2])/6;
+    const ratio=winter?summer/winter:0, smax=Math.max(summer,winter)||1;
+
+    let dateLabel;
+    if(S.loading) dateLabel='Am Lade…';
+    else if(S.loadError) dateLabel='Date aktuell nid verfüegbar';
+    else if(this.refDate) dateLabel='Stand: '+this.refWeekdayLabel()+', '+this.refDate.toLocaleDateString('de-CH',{day:'numeric',month:'long',year:'numeric'})+', '+this.refDate.toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})+' Uhr';
+    else dateLabel='';
+
+    return {
+      dateLabel,
+      refWeekday:this.refWeekdayLabel(),
+      cityTotal:this.fmt(D.cityToday),
+      topName:D.topStation.name, topTotal:this.fmt(D.topStation.todayTotal),
+      activeCount:String(D.stations.length),
+      rankLastLabel:D.stations.length>10?'10–'+D.stations.length:'10+',
+      deltaPct:(deltaUp?'+':'')+(delta*100).toFixed(1).replace('.',',')+' %',
+      stationName:st.name,
+      accent,
+      isDaily,isSeasonal,isSeason,showChart,
+      tabs,compareSegs,yearChips,
+      chartEl,legendItems,hasLegend:legendItems.length>0,
+      stationRanking,basemapChips,
+      rankExpanded:S.rankExpanded,rankToggleLabel,toggleRank,showRankToggle:rankHidden>0,
+      seasonYear:String(yr),
+      summerVal:this.fmt(summer),winterVal:this.fmt(winter),
+      seasonAccent:this.yearColor(yr),seasonAccentSoft:this.hexA(this.yearColor(yr),0.2),
+      seasonRatio:ratio.toFixed(1).replace('.',',')+'×',
+      summerW:(100*summer/smax)+'%',winterW:(100*winter/smax)+'%',
+      overlayOpen:S.overlayOpen,
+      closeOverlay:()=>this.closeOverlay(),
+      stopProp:(e)=>e.stopPropagation(),
+      setMapRef:(el)=>{ this.mapEl=el; },
+    };
+  }
+}
+</script>
+</body>
+</html>
