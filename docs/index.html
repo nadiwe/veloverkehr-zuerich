@@ -4,17 +4,56 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2N48C7XJJQ"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': localStorage.getItem('cookie_consent') === 'accepted' ? 'granted' : 'denied'
+  });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2N48C7XJJQ"></script>
+<script>
   gtag('js', new Date());
-
   gtag('config', 'G-2N48C7XJJQ');
 </script>
+<style>
+  #cookie-banner{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#173D34;color:#fff;padding:16px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;}
+  #cookie-banner p{margin:0;max-width:560px;}
+  #cookie-banner button{border:none;border-radius:20px;padding:8px 18px;font-size:13px;cursor:pointer;font-family:inherit;}
+  #cookie-accept{background:#fff;color:#173D34;font-weight:600;}
+  #cookie-decline{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);}
+</style>
 <script src="./support.js"></script>
 </head>
 <body>
+<div id="cookie-banner">
+  <p>Diese Seite verwendet Google Analytics, um Besucherzahlen zu messen. Deine Daten werden nur mit deiner Einwilligung erhoben.</p>
+  <div>
+    <button id="cookie-decline">Ablehnen</button>
+    <button id="cookie-accept">Akzeptieren</button>
+  </div>
+</div>
+<script>
+  (function () {
+    var consent = localStorage.getItem('cookie_consent');
+    var banner = document.getElementById('cookie-banner');
+    if (consent === 'accepted' || consent === 'declined') {
+      banner.style.display = 'none';
+    }
+    document.getElementById('cookie-accept').addEventListener('click', function () {
+      localStorage.setItem('cookie_consent', 'accepted');
+      gtag('consent', 'update', { 'analytics_storage': 'granted' });
+      banner.style.display = 'none';
+    });
+    document.getElementById('cookie-decline').addEventListener('click', function () {
+      localStorage.setItem('cookie_consent', 'declined');
+      banner.style.display = 'none';
+    });
+  })();
+</script>
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
